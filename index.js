@@ -1,6 +1,8 @@
 const fs = require('fs');
 const readline = require('readline');
 const {google} = require('googleapis');
+const {Base64} = require('js-base64');
+const cheerio = require('cheerio');
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
@@ -73,18 +75,16 @@ function getNewToken(oAuth2Client, callback) {
  */
 function listLabels(auth) {
   const gmail = google.gmail({version: 'v1', auth});
-  gmail.users.labels.list({
+  gmail.users.messages.get({
     userId: 'me',
+    id:'176d4539e39633c1'
   }, (err, res) => {
     if (err) return console.log('The API returned an error: ' + err);
-    const labels = res.data.labels;
-    if (labels.length) {
-      console.log('Labels:');
-      labels.forEach((label) => {
-        console.log(`- ${label.name}`);
-      });
-    } else {
-      console.log('No labels found.');
-    }
-  });
+      const resultado = Base64.decode(res.data.payload.parts[0].parts[1].body.data)
+      const $ = cheerio.load(resultado,null,false);
+      console.log($('a'))
+
+      
+    });
+  
 }

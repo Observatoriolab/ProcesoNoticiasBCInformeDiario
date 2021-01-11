@@ -9,6 +9,8 @@
   "author": "Leiser",
   "license": "ISC",
   "dependencies": {
-    "googleapis": "^39.2.0"
+    "cheerio": "^1.0.0-rc.5",
+    "googleapis": "^39.2.0",
+    "js-base64": "^3.6.0"
   }
 }
