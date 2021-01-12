@@ -80,20 +80,32 @@ function listLabels(auth) {
   const gmail = google.gmail({version: 'v1', auth});
   gmail.users.messages.get({
     userId: 'me',
-    id:'176d4539e39633c1'
+    id:'176f68499ebb2502'
   }, (err, res) => {
     if (err) return console.log('The API returned an error: ' + err);
     // El dia de cuando se entregan las noticias
-    //console.log(res.data.payload.headers[32].value)
-    const resultado = Base64.decode(res.data.payload.parts[0].parts[1].body.data)
+    console.log(res.data.payload.headers[23].value)
+    /*color:rgb(255,255,255);font-size:17px;border-bottom-color:currentColor;border-bottom-width:medium;border-bottom-style:ridge;background-color:rgb(15,29,52) */
+    //const resultado = Base64.decode(res.data.payload.parts[0].parts[1].body.data)    
+    const resultado = Base64.decode(res.data.payload.parts[1].body.data)
+    //console.log(resultado)
     const $ = cheerio.load(resultado,null,false);
     //console.log($('a'))
     const algo = $('a')
     for (const anchor of algo) {
+      //Guardar los links de las noticias
       hrefs.push(anchor.attribs.href)
       //console.log(anchor.attribs.href)
     }
-    axios.get('http://portal.nexnews.cl/showN?valor=MjEwNzFVNTEyTDEwMDkwMTYxMzgxNjczNDE2NTQ2MTY5MzA5MTAwMTA3MTI5NzA4MTAzMTQxMDQ5MDE2OTY0MTM3NjBLNTU1NTU1NDU0NTU1NQ==')
+    const algo2 = $('td')
+    for (const td of algo2) {
+      var title;
+      if(td.attribs.style === 'color: rgb(255, 255, 255); font-size: 17px; border-bottom-color: currentColor; border-bottom-width: medium; border-bottom-style: ridge; background-color: rgb(15, 29, 52);'){
+        //Topico del tema (Banco Central de Chile, Columnas y Editoriales, Economía, Banca y Finanzas, Economía Internacional )
+        console.log(td.children[0].data)
+      }
+    }
+    axios.get('http://portal.nexnews.cl/showN?valor=NVEyNjI4MDc0RjI1MjI1NDAzNDU0MTgzNTQxMzY1NDIzMjUyMjc1MDI2NzgwMjc3NzAyODc2MDI4MjI1NDI0MTAzNDQwMFQ1NTU1NTU1NTU1NTU1')
     .then(function (response) {
       // handle success
       const $ = cheerio.load(response.data,null,false);
@@ -106,11 +118,8 @@ function listLabels(auth) {
       var counter = 0
       for (let index = 0; index < publisher.length; index++) {
         const element = publisher[index];
-        if(element === ' '){
-          counter++
-        }        
         publisherIndex = index
-        if(counter == 2){
+        if(element === ' ' && publisher[index+1] === ' '){
           break
         }
       }
