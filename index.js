@@ -3,6 +3,7 @@ const readline = require('readline');
 const {google} = require('googleapis');
 const {Base64} = require('js-base64');
 const cheerio = require('cheerio');
+const axios = require('axios');
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
@@ -74,17 +75,56 @@ function getNewToken(oAuth2Client, callback) {
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
 function listLabels(auth) {
+  var hrefs = []
   const gmail = google.gmail({version: 'v1', auth});
   gmail.users.messages.get({
     userId: 'me',
     id:'176d4539e39633c1'
   }, (err, res) => {
     if (err) return console.log('The API returned an error: ' + err);
-      const resultado = Base64.decode(res.data.payload.parts[0].parts[1].body.data)
-      const $ = cheerio.load(resultado,null,false);
-      console.log($('a'))
+    // El dia de cuando se entregan las noticias
+    //console.log(res.data.payload.headers[32].value)
+    const resultado = Base64.decode(res.data.payload.parts[0].parts[1].body.data)
+    const $ = cheerio.load(resultado,null,false);
+    //console.log($('a'))
+    const algo = $('a')
+    for (const anchor of algo) {
+      hrefs.push(anchor.attribs.href)
+      //console.log(anchor.attribs.href)
+    }
+    axios.get('http://portal.nexnews.cl/showN?valor=MjEwNzFVNTEyTDEwMDkwMTYxMzgxNjczNDE2NTQ2MTY5MzA5MTAwMTA3MTI5NzA4MTAzMTQxMDQ5MDE2OTY0MTM3NjBLNTU1NTU1NDU0NTU1NQ==')
+    .then(function (response) {
+      // handle success
+      const $ = cheerio.load(response.data,null,false);
+      //console.log($('div[class=titulo]').html())
+      //console.log($('div[class=cuerpo]').html())
+      // Editorial de donde se saco la noticia
+      //console.log($('div[class="col-xs-12 col-sm-12 col-md-12 col-lg-12 medio-bar"]').text().trim().replace(/\n/g, ''))
+      var publisher = $('div[class="col-xs-12 col-sm-12 col-md-12 col-lg-12 medio-bar"]').text().trim().replace(/\n/g, '')
+      var publisherIndex;
+      var counter = 0
+      for (let index = 0; index < publisher.length; index++) {
+        const element = publisher[index];
+        if(element === ' '){
+          counter++
+        }        
+        publisherIndex = index
+        if(counter == 2){
+          break
+        }
+      }
+      var actualPublisher = publisher.substring(0,publisherIndex)
+      console.log(actualPublisher)
 
-      
+    })
+    .catch(function (error) {
+      // handle error
+      console.log(error);
+    })
+    .then(function () {
+      // always executed
     });
+
+  });
   
 }
