@@ -4,6 +4,7 @@ const {google} = require('googleapis');
 const {Base64} = require('js-base64');
 const cheerio = require('cheerio');
 const axios = require('axios');
+var CronJob = require('cron').CronJob;
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
@@ -115,6 +116,14 @@ function listLabels(auth) {
       }
       var actualPublisher = publisher.substring(0,publisherIndex)
       console.log(actualPublisher)
+
+      //Usa notacion cron https://github.com/kelektiv/node-cron
+      /*
+       var job = new CronJob(''+ getJob.schedule_time.toString()+' * * * * *', function(){
+        getData(getJob)       
+       }, true, 'America/Santiago');
+      
+      */
 
     })
     .catch(function (error) {
