@@ -84,17 +84,60 @@ function getNewToken(oAuth2Client, callback) {
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
 
-function ConseguirCorreos(auth){
-  const gmail = google.gmail({version: 'v1', auth});
+async function gmailListCall(gmail, result,callback){
+  console.log("Linea 88: ", result.nextPageToken)
+  if(result.nextPageToken === undefined){
+    console.log('Los ids de los correos son: ', correosIniciales)
+    callback(gmail)
+    return
+  }
+  else{
+    gmail.users.messages.list({
+      userId: 'me',
+      pageToken: result.nextPageToken,
+      q:'from:informeprensa@bcentral.cl'
+    }, (err, res) => {
+      if (err) return console.log('The API returned an error: ' + err);
+      console.log("Linea 100: ",res.data)
+  
+      console.log("Linea 102: ",res.data.nextPageToken)
+  
+      for (const idCorreo of res.data.messages) {
+          correosIniciales.push(idCorreo.id)
+      }
+      
+      return gmailListCall(gmail, res.data,callback) 
+    
+    })
+
+  }
+
+
+}
+
+async function guardarIdsCorreos(gmail, callback){
   // Funcion adquiere todo los id de los correos existentes
   // Guardar ids en CorreosIniciales
-  console.log("91")
+  var initialRes = {nextPageToken:''}
+  console.log("ejecutando ...")
+  await gmailListCall(gmail,initialRes,callback)
+  
+  
+  
+}
 
-
+async function guardarInfoCorreos(gmail){
+// Si es que UltimoCorreoCapturado es un string vacio -> UltimoCorreoCapturado es igual a ultimo id de CorreosIniciales
+  // llamar funcion capturar noticias pasandole la variable CorreosIniciales
+ 
   // Si es que UltimoCorreoCapturado es un string vacio -> UltimoCorreoCapturado es igual a ultimo id de CorreosIniciales
   // llamar funcion capturar noticias pasandole la variable CorreosIniciales
+  console.log('sali de la recursion')
+
+  // HASTA ACA ESTA BUENO
+
+
   if (ultimoCorreoCapturado == ""){
-    console.log("97")
     ultimoCorreoCapturado = correosIniciales[0]
     CapturarNoticias(gmail, correosIniciales)
   }
@@ -112,40 +155,53 @@ function ConseguirCorreos(auth){
   }
   //llamar funcion campurar noticas pasandole la variable CorreosNuevos
   
+}
+
+async function ConseguirCorreos(auth){
+  
+  
+  const gmail = google.gmail({version: 'v1', auth});
+  guardarIdsCorreos(gmail, guardarInfoCorreos)
+  
 
 
 
 }
 
-function CapturarNoticias(gmail,correosID){
-  //noticasAguardar es un arreglo que contine los ids de las noticias a guardar en la base de datos
-  for (const id of correosID){
-      ObtenerUnaNoticia(gmail,id)
-      ObtenerMedaDataNoticia()
-      hrefs=[]
-      console.log(hrefs)
-
+async function obtenerUnaNoticiaLoop(gmail,correosIniciales){
+  for (const id of  correosIniciales ){
+    setTimeout(() => {
+      ObtenerUnaNoticia(gmail, id)
+    }, 5000);
   }
+}
+
+async function CapturarNoticias(gmail, correosIniciales){
+  //noticasAguardar es un arreglo que contine los ids de las noticias a guardar en la base de datos
+  console.log('Linea 169: ',correosIniciales)
+  await obtenerUnaNoticiaLoop(gmail,correosIniciales)
+  await ObtenerMedaDataNoticia()
+  
   // recorrer noticasAguardar y ocupar la funcion 
 
 }
 
-function ObtenerMedaDataNoticia(){
+async function ObtenerMedaDataNoticia(){
   let link =""
   let topico = ""
-  for (const noticiaLink of hrefs){
+  for  (const noticiaLink of hrefs){
       link= noticiaLink[1]
       topico= noticiaLink[0]
-      MetaDataLink(link, topico)
+      await MetaDataLink(link, topico)
   }
 }
 
-function ObtenerUnaNoticia(gmail, idNoticia){
-  
-  gmail.users.messages.get({
+async function ObtenerUnaNoticia(gmail,correoId){
+  console.log('Linea 199 correoId: ',correoId)
+
+  await gmail.users.messages.get({
     userId: 'me',
-    //id:idNoticia
-    id:'176f68499ebb2502'
+    id:correoId
   }, (err, res) => {
     if (err) return console.log('The API returned an error: ' + err);
     // El dia de cuando se entregan las noticias
@@ -156,15 +212,17 @@ function ObtenerUnaNoticia(gmail, idNoticia){
 
     const cabeceraNoticias = $('td')
     var auxcabecera = ""
+    console.log("------------------------------------------------------------------------------------------")
+    console.log('cabecera y links: \n ')
     for (const cabecera of cabeceraNoticias) {
       var title;
       //Si la cabecera tiene el estilo de un topico de tema hay que guardarlo
-     // console.log("linea 134 lo que contiene la cabecera")
-     // console.log(cabecera.children[0])
-     // console.log("---------------------------------------------------------------------")
+      // console.log("linea 134 lo que contiene la cabecera")
+      // console.log(cabecera.children[0])
+      // console.log("---------------------------------------------------------------------")
       if(cabecera.attribs.style === 'color: rgb(255, 255, 255); font-size: 17px; border-bottom-color: currentColor; border-bottom-width: medium; border-bottom-style: ridge; background-color: rgb(15, 29, 52);'){
         //Topico del tema (Banco Central de Chile, Columnas y Editoriales, Economía, Banca y Finanzas, Economía Internacional )
-        console.log(cabecera.children[0].data)
+        console.log('Cabecera: ',cabecera.children[0].data)
         auxcabecera = cabecera.children[0].data
       }
       else if (cabecera.children[0] !== undefined && cabecera.children[0].name === 'a')  {
@@ -173,11 +231,13 @@ function ObtenerUnaNoticia(gmail, idNoticia){
         console.log([auxcabecera, cabecera.children[0].attribs.href])
       }
     }
+    console.log("------------------------------------------------------------------------------------------")
+    
   })
 }
 
-function MetaDataLink(link,topico){
-  axios.get(link)
+async function MetaDataLink(link,topico){
+  await axios.get(link)
     .then(function (response) {
       // handle success
       // Se carga el DOM en la variable $
@@ -197,11 +257,25 @@ function MetaDataLink(link,topico){
           break
         }
       }
+      console.log("---------------------------------------------------------------------------------------------")
+      console.log('Informacion de la noticia: \n')
       var actualPublisher = publisher.substring(0,publisherIndex)
-      console.log(actualPublisher)
-      // sacar el pais y la fecha de la noticia y el cuerpo y titulo de la pagina de la noticia
-      // Obtener el titulo
-      // Obtener fecha
+      console.log('\n' + actualPublisher)
+      var country = $('td[style="border-top: 0;"]').text().trim().replace(/\n/g, '').toLowerCase()
+      
+      country = country.match(/[a-z]+$/g)
+      
+      country = country[0][0].toUpperCase() + country[0].substring(1,country[0].length)
+      
+      var date = $('td[style="border-top: 1px solid #eaeaea;"]')
+      console.log('\n' + date[0].children[2].data.trim().replace(/\n/g, '').replace(/-/g,'/'))
+      
+      var content_summary = $('div[class="bajada"]').text()
+      console.log('\n' +content_summary)
+      
+      var title = $('div[class="titulo"]')[0].children[0].data
+      console.log('\n' + title)
+      console.log("---------------------------------------------------------------------------------------------")
       //guadar en la base de datos los datos de la noticia
     })
     .catch(function (error) {
