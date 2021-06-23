@@ -9,6 +9,11 @@ var correosIniciales = []
 var ultimoCorreoCapturado = ""
 var correosNuevos = []
 var hrefs = []
+const API_ENDPOINT_TO_POST = "https://satelite-noticias-api.herokuapp.com/post_news"
+
+const delay = ms => new Promise(res => {    
+  setTimeout(res, ms)}
+);
 
 /// FUNCIONES GMAIL INGRESANDO 
 // If modifying these scopes, delete token.json.
@@ -139,6 +144,7 @@ async function guardarInfoCorreos(gmail){
 
   if (ultimoCorreoCapturado == ""){
     ultimoCorreoCapturado = correosIniciales[0]
+    console.log('147: ',ultimoCorreoCapturado)
     CapturarNoticias(gmail, correosIniciales)
   }
   // Si no, realizar comparacion de CorreosIniciales con el id de UltimoCorreoCapturado y guardar los ids en una variable llamada CorreosNuevos
@@ -169,18 +175,25 @@ async function ConseguirCorreos(auth){
 }
 
 async function obtenerUnaNoticiaLoop(gmail,correosIniciales){
+  const correosInicialesPromises = []
+
   for (const id of  correosIniciales ){
-    setTimeout(() => {
-      ObtenerUnaNoticia(gmail, id)
-    }, 5000);
+    correosInicialesPromises.push(ObtenerUnaNoticia(gmail, id))
   }
+
+  Promise.all(correosInicialesPromises).then(async (responses)=>{
+    console.log('pase')
+    ObtenerMedaDataNoticia()
+  })
+  .catch((err)=>{
+      throw err;
+  });
 }
 
 async function CapturarNoticias(gmail, correosIniciales){
   //noticasAguardar es un arreglo que contine los ids de las noticias a guardar en la base de datos
   console.log('Linea 169: ',correosIniciales)
-  await obtenerUnaNoticiaLoop(gmail,correosIniciales)
-  await ObtenerMedaDataNoticia()
+  obtenerUnaNoticiaLoop(gmail,correosIniciales)
   
   // recorrer noticasAguardar y ocupar la funcion 
 
@@ -193,12 +206,14 @@ async function ObtenerMedaDataNoticia(){
       link= noticiaLink[1]
       topico= noticiaLink[0]
       await MetaDataLink(link, topico)
+      await delay(1000)
   }
+  hrefs = []
+
 }
 
-async function ObtenerUnaNoticia(gmail,correoId){
-  console.log('Linea 199 correoId: ',correoId)
-
+async function getNewsCall(gmail,correoId,resolve){
+  
   await gmail.users.messages.get({
     userId: 'me',
     id:correoId
@@ -209,9 +224,11 @@ async function ObtenerUnaNoticia(gmail,correoId){
     const htmlCorreo = Base64.decode(res.data.payload.parts[1].body.data)
     //console.log(resultado)
     const $ = cheerio.load(htmlCorreo,null,false);
-
+    
     const cabeceraNoticias = $('td')
     var auxcabecera = ""
+    console.log('Linea 224 estoy en el correo: ',correoId)
+    console.log('Fecha del correo: ', fechaCorreo)
     console.log("------------------------------------------------------------------------------------------")
     console.log('cabecera y links: \n ')
     for (const cabecera of cabeceraNoticias) {
@@ -219,76 +236,140 @@ async function ObtenerUnaNoticia(gmail,correoId){
       //Si la cabecera tiene el estilo de un topico de tema hay que guardarlo
       // console.log("linea 134 lo que contiene la cabecera")
       // console.log(cabecera.children[0])
-      // console.log("---------------------------------------------------------------------")
-      if(cabecera.attribs.style === 'color: rgb(255, 255, 255); font-size: 17px; border-bottom-color: currentColor; border-bottom-width: medium; border-bottom-style: ridge; background-color: rgb(15, 29, 52);'){
+      //console.log("---------------------------------------------------------------------")
+      if(cabecera.attribs.style === 'color: rgb(255, 255, 255); font-size: 17px; border-bottom-color: currentColor; border-bottom-width: medium; border-bottom-style: ridge; background-color: rgb(15, 29, 52);'
+        || cabecera.attribs.style === 'color: rgb(255, 255, 255); font-size: 17px; border-bottom-color: currentColor; border-bottom-width: medium; border-bottom-style: ridge; background-color: rgb(15, 29, 52);'.trim()
+        || cabecera.attribs.style === 'color:rgb(51,51,51);font-size:21px;border-bottom-color:rgb(63,106,161);border-bottom-width:3px;border-bottom-style:ridge;background-color:rgb(255,255,255)'){
         //Topico del tema (Banco Central de Chile, Columnas y Editoriales, Economía, Banca y Finanzas, Economía Internacional )
         console.log('Cabecera: ',cabecera.children[0].data)
         auxcabecera = cabecera.children[0].data
       }
       else if (cabecera.children[0] !== undefined && cabecera.children[0].name === 'a')  {
         //EL primer elemento del arreglo es el topico y el segundo es el id
-        hrefs.push([auxcabecera, cabecera.children[0].attribs.href])
-        console.log([auxcabecera, cabecera.children[0].attribs.href])
+        hrefs.push([auxcabecera.trim().replace(/\n/g, ''), cabecera.children[0].attribs.href])
+        console.log([auxcabecera.trim().replace(/\n/g, ''), cabecera.children[0].attribs.href])
       }
     }
     console.log("------------------------------------------------------------------------------------------")
-    
+    resolve()
   })
+
 }
 
-async function MetaDataLink(link,topico){
+async function ObtenerUnaNoticia(gmail,correoId){
+  console.log('Linea 199 correoId: ',correoId)
+  return new Promise(function(resolve) {
+    getNewsCall(gmail,correoId,resolve)
+  });
+}
+async function MetaDataLinkCall(link,topico,resolve){
+
   await axios.get(link)
-    .then(function (response) {
-      // handle success
-      // Se carga el DOM en la variable $
-      const $ = cheerio.load(response.data,null,false);
-      //console.log($('div[class=titulo]').html())
-      //console.log($('div[class=cuerpo]').html())
-      
-      //console.log($('div[class="col-xs-12 col-sm-12 col-md-12 col-lg-12 medio-bar"]').text().trim().replace(/\n/g, ''))
-      // Editorial de donde se saco la noticia
-      var publisher = $('div[class="col-xs-12 col-sm-12 col-md-12 col-lg-12 medio-bar"]').text().trim().replace(/\n/g, '')
-      var publisherIndex;
-      var counter = 0
-      for (let index = 0; index < publisher.length; index++) {
-        const element = publisher[index];
-        publisherIndex = index
-        if(element === ' ' && publisher[index+1] === ' '){
-          break
-        }
+  .then(function (response) {
+    console.log('aqui se pudo hacer')
+
+    // handle success
+    // Se carga el DOM en la variable $
+    const $ = cheerio.load(response.data,null,false);
+    //console.log($('div[class=titulo]').html())
+    //console.log($('div[class=cuerpo]').html())
+    
+    //console.log($('div[class="col-xs-12 col-sm-12 col-md-12 col-lg-12 medio-bar"]').text().trim().replace(/\n/g, ''))
+    // Editorial de donde se saco la noticia
+    var publisher = $('div[class="col-xs-12 col-sm-12 col-md-12 col-lg-12 medio-bar"]').text().trim().replace(/\n/g, '')
+    var publisherIndex;
+    var counter = 0
+    for (let index = 0; index < publisher.length; index++) {
+      const element = publisher[index];
+      publisherIndex = index
+      if(element === ' ' && publisher[index+1] === ' '){
+        break
       }
-      console.log("---------------------------------------------------------------------------------------------")
-      console.log('Informacion de la noticia: \n')
-      var actualPublisher = publisher.substring(0,publisherIndex)
-      console.log('\n' + actualPublisher)
-      var country = $('td[style="border-top: 0;"]').text().trim().replace(/\n/g, '').toLowerCase()
-      
-      country = country.match(/[a-z]+$/g)
-      
-      country = country[0][0].toUpperCase() + country[0].substring(1,country[0].length)
-      
-      var date = $('td[style="border-top: 1px solid #eaeaea;"]')
-      console.log('\n' + date[0].children[2].data.trim().replace(/\n/g, '').replace(/-/g,'/'))
-      
-      var content_summary = $('div[class="bajada"]').text()
-      console.log('\n' +content_summary)
-      
-      var title = $('div[class="titulo"]')[0].children[0].data
-      console.log('\n' + title)
-      console.log("---------------------------------------------------------------------------------------------")
-      //guadar en la base de datos los datos de la noticia
-    })
-    .catch(function (error) {
-      // handle error
-      console.log(error);
-    })
-    .then(function () {
-      // always executed
-    });
+    }
+    console.log("---------------------------------------------------------------------------------------------")
+    console.log('Informacion de la noticia: \n')
+    var actualPublisher = publisher.substring(0,publisherIndex)
+    console.log('\n' + actualPublisher)
+    var country = $('td[style="border-top: 0;"]').text().trim().replace(/\n/g, '').toLowerCase()
+    
+    country = country.match(/[a-z]+$/g)
+    
+    country = country[0][0].toUpperCase() + country[0].substring(1,country[0].length)
+    
+    var date = $('td[style="border-top: 1px solid #eaeaea;"]')
+    console.log('\n' + date[0].children[2].data.trim().replace(/\n/g, '').replace(/-/g,'/'))
+    
+    var content_summary = $('div[class="bajada"]').text()
+    console.log('\n' +content_summary)
+    
+    var title = $('div[class="titulo"]')[0].children[0].data
+    console.log('\n' + title)
+    console.log("---------------------------------------------------------------------------------------------")
+    //guadar en la base de datos los datos de la noticia
+    //data = {"title": actualTitle,"content": news_single["description"],"fullContent":news_single["link"],"tags": "", "source": source, "country": country, "axis_primary": axis, "axis_secondary": "", "date": date, "idBot": id}
+
+    GuardarNoticiaDB(data)
+  })
+  .catch(function (error) {
+    // handle errore
+
+    console.log('error del axios');
+  })
+  .then(function () {
+    // always executed
+    console.log('Se ejecuta esto')
+
+  });
+
+}
+async function MetaDataLink(link,topico){
+  await MetaDataLinkCall(link,topico);
 }
 
-function GurdarNoticiasDB(data){
+async function GuardarNoticiaDB(data){
+  console.log("viendo que se va a enviar -->>>>>>>   ", data)
+  let reply = await axios.post(API_ENDPOINT_TO_POST, data) 
+  console.log(reply)
+}
 
+function singleNews(auth){
+  const gmail = google.gmail({version: 'v1', auth});
+
+  gmail.users.messages.get({
+    userId: 'me',
+    id:'17a33eeb9f10a176'
+  }, (err, res) => {
+    if (err) return console.log('The API returned an error: ' + err);
+    const fechaCorreo = res.data.payload.headers[23].value
+    console.log(res.data)
+    const htmlCorreo = Base64.decode(res.data.payload.parts[1].body.data)
+    //console.log(resultado)
+    const $ = cheerio.load(htmlCorreo,null,false);
+
+    const cabeceraNoticias = $('td')
+    var auxcabecera = ""
+    //console.log("------------------------------------------------------------------------------------------")
+    //console.log('cabecera y links: \n ')
+    for (const cabecera of cabeceraNoticias) {
+      var title;
+      //Si la cabecera tiene el estilo de un topico de tema hay que guardarlo
+      //console.log("linea 134 lo que contiene la cabecera")
+      //console.log(cabecera.children[0])
+      //console.log("---------------------------------------------------------------------")
+      if(cabecera.attribs.style === 'color: rgb(255, 255, 255); font-size: 17px; border-bottom-color: currentColor; border-bottom-width: medium; border-bottom-style: ridge; background-color: rgb(15, 29, 52);'){
+        //Topico del tema (Banco Central de Chile, Columnas y Editoriales, Economía, Banca y Finanzas, Economía Internacional )
+        //console.log('Cabecera: ',cabecera.children[0].data)
+        auxcabecera = cabecera.children[0].data
+      }
+      else if (cabecera.children[0] !== undefined && cabecera.children[0].name === 'a')  {
+        //EL primer elemento del arreglo es el topico y el segundo es el id
+        //hrefs.push([auxcabecera.trim().replace(/\n/g, ''), cabecera.children[0].attribs.href])
+        //console.log([auxcabecera.trim().replace(/\n/g, ''), cabecera.children[0].attribs.href])
+      }
+    }
+    //console.log("------------------------------------------------------------------------------------------")
+  })
+  
 }
 
 function listLabels(auth) {
