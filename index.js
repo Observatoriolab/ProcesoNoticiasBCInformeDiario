@@ -175,19 +175,14 @@ async function ConseguirCorreos(auth){
 }
 
 async function obtenerUnaNoticiaLoop(gmail,correosIniciales){
-  const correosInicialesPromises = []
 
-  for (const id of  correosIniciales ){
-    correosInicialesPromises.push(ObtenerUnaNoticia(gmail, id))
+  for (const id of correosIniciales){
+    await ObtenerUnaNoticia(gmail, id)
+    await delay(100)
   }
-
-  Promise.all(correosInicialesPromises).then(async (responses)=>{
-    console.log('pase')
-    ObtenerMedaDataNoticia()
-  })
-  .catch((err)=>{
-      throw err;
-  });
+  console.log('pase')
+  ObtenerMedaDataNoticia()
+ 
 }
 
 async function CapturarNoticias(gmail, correosIniciales){
@@ -212,7 +207,7 @@ async function ObtenerMedaDataNoticia(){
 
 }
 
-async function getNewsCall(gmail,correoId,resolve){
+async function getNewsCall(gmail,correoId){
   
   await gmail.users.messages.get({
     userId: 'me',
@@ -251,16 +246,13 @@ async function getNewsCall(gmail,correoId,resolve){
       }
     }
     console.log("------------------------------------------------------------------------------------------")
-    resolve()
   })
 
 }
 
 async function ObtenerUnaNoticia(gmail,correoId){
   console.log('Linea 199 correoId: ',correoId)
-  return new Promise(function(resolve) {
-    getNewsCall(gmail,correoId,resolve)
-  });
+  await getNewsCall(gmail,correoId)
 }
 async function MetaDataLinkCall(link,topico,resolve){
 
