@@ -9,7 +9,7 @@ var correosIniciales = []
 var ultimoCorreoCapturado = ""
 var correosNuevos = []
 var hrefs = []
-const API_ENDPOINT_TO_POST = "https://satelite-noticias-api.herokuapp.com/post_news"
+const API_ENDPOINT_TO_POST = "https://satelite-noticias-api.herokuapp.com/create_news"
 
 const delay = ms => new Promise(res => {    
   setTimeout(res, ms)}
@@ -298,7 +298,8 @@ async function MetaDataLinkCall(link,topico,resolve){
     
     var date = $('td[style="border-top: 1px solid #eaeaea;"]')
     console.log('\n' + date[0].children[2].data.trim().replace(/\n/g, '').replace(/-/g,'/'))
-    
+    date = date[0].children[2].data.trim().replace(/\n/g, '').replace(/-/g,'/')
+
     var content_summary = $('div[class="bajada"]').text()
     console.log('\n' +content_summary)
     
@@ -306,7 +307,22 @@ async function MetaDataLinkCall(link,topico,resolve){
     console.log('\n' + title)
     console.log("---------------------------------------------------------------------------------------------")
     //guadar en la base de datos los datos de la noticia
-    //data = {"title": actualTitle,"content": news_single["description"],"fullContent":news_single["link"],"tags": "", "source": source, "country": country, "axis_primary": axis, "axis_secondary": "", "date": date, "idBot": id}
+  
+    var data = {}
+
+    data.title = title
+    data.content_summary = content_summary
+    data.link = link
+    data.type = "Informe Diario BC"
+    data.tags = null
+    data.source = actualPublisher
+    data.country = country
+    data.axis_primary = topico
+    data.axis_secondary = ''
+    data.date = date
+
+
+    
 
     GuardarNoticiaDB(data)
   })
@@ -329,7 +345,7 @@ async function MetaDataLink(link,topico){
 async function GuardarNoticiaDB(data){
   console.log("viendo que se va a enviar -->>>>>>>   ", data)
   let reply = await axios.post(API_ENDPOINT_TO_POST, data) 
-  console.log(reply)
+  console.log('347 reply of axios DB:', reply)
 }
 
 function singleNews(auth){
