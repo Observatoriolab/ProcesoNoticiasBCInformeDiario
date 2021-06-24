@@ -307,15 +307,8 @@ async function ObtenerMedaDataNoticia(resolve){
 async function ObtenerUnaNoticia(gmail,correoIdList,ObtenerMedaDataNoticia,resolve){
   console.log('Linea 199 correoId: ',correoIdList)
   let counter = 0
-  var auxArray = []
-  for (let index = 0; index < 1; index++) {
-    let element = correoIdList[index];
-    auxArray.push(element)
-
-  }
-  auxArray.push('')
-  //correoIdList.push('')
-  await gmailGetCall(gmail,auxArray,ObtenerMedaDataNoticia,counter,resolve)
+  correoIdList.push('')
+  await gmailGetCall(gmail,correoIdList,ObtenerMedaDataNoticia,counter,resolve)
 }
 async function MetaDataLinkCall(link,topico){
 
