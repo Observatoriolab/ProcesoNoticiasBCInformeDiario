@@ -15,11 +15,7 @@ var correosNuevos = []
 var hrefs = []
 const API_ENDPOINT_TO_POST = "https://satelite-noticias-api.herokuapp.com/create_news"
 
-let client = require('redis').createClient({
-  port: 6379, // Redis port
-  host: "redis-server", // Redis host
-  
-});
+let client = require('redis').createClient(process.env.REDIS_URL);
 client.on("error", function(err) {
   console.log("Bonk. The worker framework cannot connect to redis, which might be ok on a dev server!");
   console.log("Resque error : "+err);
@@ -243,7 +239,7 @@ async function guardarInfoCorreos(gmail,resolve){
         console.log('nope', error)                      
         return;                
     }
-    if(rep){
+    if(rep !== undefined){
       for (const correo of correosIniciales){
         if(correo !== rep){
           correosNuevos.push(correo)
