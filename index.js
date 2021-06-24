@@ -239,7 +239,7 @@ async function guardarInfoCorreos(gmail,resolve){
         console.log('nope', error)                      
         return;                
     }
-    if(rep !== undefined){
+    if(rep !== undefined && rep !== null){
       for (const correo of correosIniciales){
         if(correo !== rep){
           correosNuevos.push(correo)
