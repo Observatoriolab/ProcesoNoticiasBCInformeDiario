@@ -4,7 +4,6 @@ const {google} = require('googleapis');
 const {Base64} = require('js-base64');
 const cheerio = require('cheerio');
 const axios = require('axios');
-var CronJob = require('cron').CronJob;
 var correosIniciales = []
 var ultimoCorreoCapturado = ""
 var correosNuevos = []
@@ -23,15 +22,44 @@ const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 // time.
 const TOKEN_PATH = 'token.json';
 
+let oAuth2Client = null
 
-
-
+loadClientSecret()
 // Load client secrets from a local file.
-fs.readFile('credentials.json', (err, content) => {
-  if (err) return console.log('Error loading client secret file:', err);
-  // Authorize a client with credentials, then call the Gmail API.
-  authorize(JSON.parse(content), ConseguirCorreos);
-});
+async function loadClientSecret(){
+  fs.readFile('credentials.json', async (err, content) => {
+    if (err) return console.log('Error loading client secret file:', err);
+    // Authorize a client with credentials, then call the Gmail API.
+    await authorize(JSON.parse(content),getMailLoop);   
+  });
+}
+
+
+async function conseguirCorreosPromesa(auth){
+  return await new Promise(resolve => setTimeout(async() => {
+    await ConseguirCorreos(auth,resolve)
+  })) 
+}
+
+async function getMailLoop(auth) {
+  const keepGoing = true;
+  while (keepGoing) {
+    await conseguirCorreosPromesa(auth)
+    console.log('-----------------------------------------------------------------------------------------')
+    console.log('-----------------------------------------------------------------------------------------')
+    console.log('-----------------------------------------------------------------------------------------')
+    console.log('-----------------------------------------------------------------------------------------')
+    console.log('-----------------------------------------------------------------------------------------')
+    console.log('-----------------------------------------------------------------------------------------')
+    console.log('-----------------------------------------------------------------------------------------')
+    console.log('-----------------------------------------------------------------------------------------')
+    console.log('-----------------------------------------------------------------------------------------')
+    console.log('-----------------------------------------------------------------------------------------')
+
+    await delay(10000); 
+  }
+}
+
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -39,16 +67,16 @@ fs.readFile('credentials.json', (err, content) => {
  * @param {Object} credentials The authorization client credentials.
  * @param {function} callback The callback to call with the authorized client.
  */
-function authorize(credentials, callback) {
+async function authorize(credentials,callback) {
   const {client_secret, client_id, redirect_uris} = credentials.installed;
-  const oAuth2Client = new google.auth.OAuth2(
+  oAuth2Client = new google.auth.OAuth2(
       client_id, client_secret, redirect_uris[0]);
 
   // Check if we have previously stored a token.
   fs.readFile(TOKEN_PATH, (err, token) => {
-    if (err) return getNewToken(oAuth2Client, callback);
+    if (err) return getNewToken(oAuth2Client,callback);
     oAuth2Client.setCredentials(JSON.parse(token));
-    callback(oAuth2Client);
+    callback(oAuth2Client)
   });
 }
 
@@ -58,7 +86,7 @@ function authorize(credentials, callback) {
  * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
  * @param {getEventsCallback} callback The callback for the authorized client.
  */
-function getNewToken(oAuth2Client, callback) {
+function getNewToken(oAuth2Client,callback) {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
@@ -89,11 +117,11 @@ function getNewToken(oAuth2Client, callback) {
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
 
-async function gmailListCall(gmail, result,callback){
+async function gmailListCall(gmail, result,callback,resolve){
   console.log("Linea 88: ", result.nextPageToken)
   if(result.nextPageToken === undefined){
     console.log('Los ids de los correos son: ', correosIniciales)
-    callback(gmail)
+    callback(gmail, resolve)
     return
   }
   else{
@@ -102,7 +130,7 @@ async function gmailListCall(gmail, result,callback){
       pageToken: result.nextPageToken,
       q:'from:informeprensa@bcentral.cl'
     }, (err, res) => {
-      if (err) return console.log('The API returned an error: ' + err);
+      if (err) return console.log('The API returned an error: 120' + err);
       console.log("Linea 100: ",res.data)
   
       console.log("Linea 102: ",res.data.nextPageToken)
@@ -111,7 +139,7 @@ async function gmailListCall(gmail, result,callback){
           correosIniciales.push(idCorreo.id)
       }
       
-      return gmailListCall(gmail, res.data,callback) 
+      return gmailListCall(gmail, res.data,callback, resolve) 
     
     })
 
@@ -119,33 +147,84 @@ async function gmailListCall(gmail, result,callback){
 
 
 }
+async function gmailGetCall(gmail, correoIdList,callback,counter,resolve){
+  console.log('Linea 137')
+  if(correoIdList[counter].length === 0){
+    console.log('Los ids de los correos son: ', correoIdList)
+    callback(resolve)
+    return
+  }
+  else{    
+    gmail.users.messages.get({
+      userId: 'me',
+      id:correoIdList[counter]
+    }, (err, res) => {
+        if (err) return console.log('The API returned an error: ' + err);
+        // El dia de cuando se entregan las noticias
+        const fechaCorreo = res.data.payload.headers[23].value
+        const htmlCorreo = Base64.decode(res.data.payload.parts[1].body.data)
+        //console.log(resultado)
+        const $ = cheerio.load(htmlCorreo,null,false);
+        
+        const cabeceraNoticias = $('td')
+        var auxcabecera = ""
+        console.log('Linea 224 estoy en el correo y sacando cabecera/link',correoIdList[counter])
+        //console.log('Fecha del correo: ', fechaCorreo)
+        //console.log("------------------------------------------------------------------------------------------")
+        //console.log('cabecera y links: \n ')
+        for (const cabecera of cabeceraNoticias) {
+          var title;
+          //Si la cabecera tiene el estilo de un topico de tema hay que guardarlo
+          // console.log("linea 134 lo que contiene la cabecera")
+          // console.log(cabecera.children[0])
+          //console.log("---------------------------------------------------------------------")
+          if(cabecera.attribs.style === 'color: rgb(255, 255, 255); font-size: 17px; border-bottom-color: currentColor; border-bottom-width: medium; border-bottom-style: ridge; background-color: rgb(15, 29, 52);'
+            || cabecera.attribs.style === 'color: rgb(255, 255, 255); font-size: 17px; border-bottom-color: currentColor; border-bottom-width: medium; border-bottom-style: ridge; background-color: rgb(15, 29, 52);'.trim()
+            || cabecera.attribs.style === 'color:rgb(51,51,51);font-size:21px;border-bottom-color:rgb(63,106,161);border-bottom-width:3px;border-bottom-style:ridge;background-color:rgb(255,255,255)'){
+            //Topico del tema (Banco Central de Chile, Columnas y Editoriales, Economía, Banca y Finanzas, Economía Internacional )
+            //console.log('Cabecera: ',cabecera.children[0].data)
+            auxcabecera = cabecera.children[0].data
+          }
+          else if (cabecera.children[0] !== undefined && cabecera.children[0].name === 'a')  {
+            //EL primer elemento del arreglo es el topico y el segundo es el id
+            hrefs.push([auxcabecera.trim().replace(/\n/g, ''), cabecera.children[0].attribs.href])
+            //console.log([auxcabecera.trim().replace(/\n/g, ''), cabecera.children[0].attribs.href])
+          }
+        }
+        console.log("------------------------------------------------------------------------------------------")
+        counter+=1
+        return gmailGetCall(gmail,correoIdList,callback,counter,resolve) 
 
-async function guardarIdsCorreos(gmail, callback){
+      })
+  }
+}
+
+async function guardarIdsCorreos(gmail, callback, resolve){
   // Funcion adquiere todo los id de los correos existentes
   // Guardar ids en CorreosIniciales
   var initialRes = {nextPageToken:''}
   console.log("ejecutando ...")
-  await gmailListCall(gmail,initialRes,callback)
+  await gmailListCall(gmail,initialRes,callback, resolve)
   
   
   
 }
 
-async function guardarInfoCorreos(gmail){
+async function guardarInfoCorreos(gmail,resolve){
 // Si es que UltimoCorreoCapturado es un string vacio -> UltimoCorreoCapturado es igual a ultimo id de CorreosIniciales
   // llamar funcion capturar noticias pasandole la variable CorreosIniciales
  
   // Si es que UltimoCorreoCapturado es un string vacio -> UltimoCorreoCapturado es igual a ultimo id de CorreosIniciales
   // llamar funcion capturar noticias pasandole la variable CorreosIniciales
   console.log('sali de la recursion')
-
+  console.log('ultimoCorreoCapturado', ultimoCorreoCapturado)
   // HASTA ACA ESTA BUENO
 
 
-  if (ultimoCorreoCapturado == ""){
+  if (ultimoCorreoCapturado.length === 0){
     ultimoCorreoCapturado = correosIniciales[0]
     console.log('147: ',ultimoCorreoCapturado)
-    CapturarNoticias(gmail, correosIniciales)
+    CapturarNoticias(gmail, correosIniciales,resolve)
   }
   // Si no, realizar comparacion de CorreosIniciales con el id de UltimoCorreoCapturado y guardar los ids en una variable llamada CorreosNuevos
   else{
@@ -157,44 +236,60 @@ async function guardarInfoCorreos(gmail){
         break
       }
     }
-    CapturarNoticias(gmail, correosNuevos)
+    if(correosNuevos.length !== 0){
+      CapturarNoticias(gmail, correosNuevos,resolve)
+    }
+    else{
+      console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
+
+      console.log('no hay correos nuevos, esperar...')
+      console.log('no hay correos nuevos, esperar...')
+      console.log('no hay correos nuevos, esperar...')
+      console.log('no hay correos nuevos, esperar...')
+      console.log('no hay correos nuevos, esperar...')
+      console.log('no hay correos nuevos, esperar...')
+      console.log('no hay correos nuevos, esperar...')
+      console.log('no hay correos nuevos, esperar...')
+      console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
+
+      resolve()
+
+    }
+    
   }
   //llamar funcion campurar noticas pasandole la variable CorreosNuevos
   
 }
 
-async function ConseguirCorreos(auth){
+async function ConseguirCorreos(auth, resolve){
   
-  
+  console.log('el auth',auth)
   const gmail = google.gmail({version: 'v1', auth});
-  guardarIdsCorreos(gmail, guardarInfoCorreos)
+  guardarIdsCorreos(gmail, guardarInfoCorreos, resolve)
   
 
 
 
 }
 
-async function obtenerUnaNoticiaLoop(gmail,correosIniciales){
+async function obtenerUnaNoticiaLoop(gmail,correosIniciales,resolve){
 
-  for (const id of correosIniciales){
-    await ObtenerUnaNoticia(gmail, id)
-    await delay(100)
-  }
-  console.log('pase')
-  ObtenerMedaDataNoticia()
+  await ObtenerUnaNoticia(gmail, correosIniciales, ObtenerMedaDataNoticia,resolve)
+  
+ 
  
 }
 
-async function CapturarNoticias(gmail, correosIniciales){
+async function CapturarNoticias(gmail, correosIniciales,resolve){
   //noticasAguardar es un arreglo que contine los ids de las noticias a guardar en la base de datos
   console.log('Linea 169: ',correosIniciales)
-  obtenerUnaNoticiaLoop(gmail,correosIniciales)
+  obtenerUnaNoticiaLoop(gmail,correosIniciales,resolve)
   
   // recorrer noticasAguardar y ocupar la funcion 
 
 }
 
-async function ObtenerMedaDataNoticia(){
+async function ObtenerMedaDataNoticia(resolve){
   let link =""
   let topico = ""
   for  (const noticiaLink of hrefs){
@@ -204,61 +299,32 @@ async function ObtenerMedaDataNoticia(){
       await delay(1000)
   }
   hrefs = []
+  resolve()
 
 }
 
-async function getNewsCall(gmail,correoId){
-  
-  await gmail.users.messages.get({
-    userId: 'me',
-    id:correoId
-  }, (err, res) => {
-    if (err) return console.log('The API returned an error: ' + err);
-    // El dia de cuando se entregan las noticias
-    const fechaCorreo = res.data.payload.headers[23].value
-    const htmlCorreo = Base64.decode(res.data.payload.parts[1].body.data)
-    //console.log(resultado)
-    const $ = cheerio.load(htmlCorreo,null,false);
-    
-    const cabeceraNoticias = $('td')
-    var auxcabecera = ""
-    console.log('Linea 224 estoy en el correo: ',correoId)
-    console.log('Fecha del correo: ', fechaCorreo)
-    console.log("------------------------------------------------------------------------------------------")
-    console.log('cabecera y links: \n ')
-    for (const cabecera of cabeceraNoticias) {
-      var title;
-      //Si la cabecera tiene el estilo de un topico de tema hay que guardarlo
-      // console.log("linea 134 lo que contiene la cabecera")
-      // console.log(cabecera.children[0])
-      //console.log("---------------------------------------------------------------------")
-      if(cabecera.attribs.style === 'color: rgb(255, 255, 255); font-size: 17px; border-bottom-color: currentColor; border-bottom-width: medium; border-bottom-style: ridge; background-color: rgb(15, 29, 52);'
-        || cabecera.attribs.style === 'color: rgb(255, 255, 255); font-size: 17px; border-bottom-color: currentColor; border-bottom-width: medium; border-bottom-style: ridge; background-color: rgb(15, 29, 52);'.trim()
-        || cabecera.attribs.style === 'color:rgb(51,51,51);font-size:21px;border-bottom-color:rgb(63,106,161);border-bottom-width:3px;border-bottom-style:ridge;background-color:rgb(255,255,255)'){
-        //Topico del tema (Banco Central de Chile, Columnas y Editoriales, Economía, Banca y Finanzas, Economía Internacional )
-        console.log('Cabecera: ',cabecera.children[0].data)
-        auxcabecera = cabecera.children[0].data
-      }
-      else if (cabecera.children[0] !== undefined && cabecera.children[0].name === 'a')  {
-        //EL primer elemento del arreglo es el topico y el segundo es el id
-        hrefs.push([auxcabecera.trim().replace(/\n/g, ''), cabecera.children[0].attribs.href])
-        console.log([auxcabecera.trim().replace(/\n/g, ''), cabecera.children[0].attribs.href])
-      }
-    }
-    console.log("------------------------------------------------------------------------------------------")
-  })
 
-}
+async function ObtenerUnaNoticia(gmail,correoIdList,ObtenerMedaDataNoticia,resolve){
+  console.log('Linea 199 correoId: ',correoIdList)
+  let counter = 0
+  var auxArray = []
+  for (let index = 0; index < 1; index++) {
+    let element = correoIdList[index];
+    auxArray.push(element)
 
-async function ObtenerUnaNoticia(gmail,correoId){
-  console.log('Linea 199 correoId: ',correoId)
-  await getNewsCall(gmail,correoId)
+  }
+  auxArray.push('')
+  //correoIdList.push('')
+  await gmailGetCall(gmail,auxArray,ObtenerMedaDataNoticia,counter,resolve)
 }
-async function MetaDataLinkCall(link,topico,resolve){
+async function MetaDataLinkCall(link,topico){
 
   await axios.get(link)
   .then(function (response) {
-    console.log('aqui se pudo hacer')
+    console.log('-----------------------------------------------------------------------------------------')
+
+    console.log('estoy sacando la data de la noticia')
+    console.log(link)
 
     // handle success
     // Se carga el DOM en la variable $
@@ -279,9 +345,9 @@ async function MetaDataLinkCall(link,topico,resolve){
       }
     }
     console.log("---------------------------------------------------------------------------------------------")
-    console.log('Informacion de la noticia: \n')
+    //console.log('Informacion de la noticia: \n')
     var actualPublisher = publisher.substring(0,publisherIndex)
-    console.log('\n' + actualPublisher)
+    //console.log('\n' + actualPublisher)
     var country = $('td[style="border-top: 0;"]').text().trim().replace(/\n/g, '').toLowerCase()
     
     country = country.match(/[a-z]+$/g)
@@ -289,15 +355,15 @@ async function MetaDataLinkCall(link,topico,resolve){
     country = country[0][0].toUpperCase() + country[0].substring(1,country[0].length)
     
     var date = $('td[style="border-top: 1px solid #eaeaea;"]')
-    console.log('\n' + date[0].children[2].data.trim().replace(/\n/g, '').replace(/-/g,'/'))
+    //console.log('\n' + date[0].children[2].data.trim().replace(/\n/g, '').replace(/-/g,'/'))
     date = date[0].children[2].data.trim().replace(/\n/g, '').replace(/-/g,'/')
 
     var content_summary = $('div[class="bajada"]').text()
-    console.log('\n' +content_summary)
+    //console.log('\n' +content_summary)
     
     var title = $('div[class="titulo"]')[0].children[0].data
-    console.log('\n' + title)
-    console.log("---------------------------------------------------------------------------------------------")
+    //console.log('\n' + title)
+    //console.log("---------------------------------------------------------------------------------------------")
     //guadar en la base de datos los datos de la noticia
   
     var data = {}
@@ -453,3 +519,4 @@ function listLabels(auth) {
   });
   
 }
+
