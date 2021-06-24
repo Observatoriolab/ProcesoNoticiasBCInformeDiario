@@ -1,16 +1,31 @@
 // RECORDAR QUE EXISTE EL R10 BOOT, ENTONCES HAY QUE ESCALAR EL DYNOS 
 // EJECUTAR EN CONSOLA : heroku ps:scale worker=1 -a informe-noticias-bc
+// EJECUTAR EN CONSOLA : heroku ps:scale web=0 -a informe-noticias-bc
 const fs = require('fs');
 const readline = require('readline');
 const {google} = require('googleapis');
 const {Base64} = require('js-base64');
 const cheerio = require('cheerio');
 const axios = require('axios');
+
+
 var correosIniciales = []
 var ultimoCorreoCapturado = ""
 var correosNuevos = []
 var hrefs = []
 const API_ENDPOINT_TO_POST = "https://satelite-noticias-api.herokuapp.com/create_news"
+
+let client = require('redis').createClient({
+  port: 6379, // Redis port
+  host: "redis-server", // Redis host
+  
+});
+client.on("error", function(err) {
+  console.log("Bonk. The worker framework cannot connect to redis, which might be ok on a dev server!");
+  console.log("Resque error : "+err);
+  client.quit();
+});
+
 
 const delay = ms => new Promise(res => {    
   setTimeout(res, ms)}
@@ -221,46 +236,55 @@ async function guardarInfoCorreos(gmail,resolve){
   console.log('sali de la recursion')
   console.log('ultimoCorreoCapturado', ultimoCorreoCapturado)
   // HASTA ACA ESTA BUENO
-
-
-  if (ultimoCorreoCapturado.length === 0){
-    ultimoCorreoCapturado = correosIniciales[0]
-    console.log('147: ',ultimoCorreoCapturado)
-    CapturarNoticias(gmail, correosIniciales,resolve)
-  }
-  // Si no, realizar comparacion de CorreosIniciales con el id de UltimoCorreoCapturado y guardar los ids en una variable llamada CorreosNuevos
-  else{
-    for (const correo of correosIniciales){
-      if(correo !== ultimoCorreoCapturado){
-        correosNuevos.push(correo)
+  client.get('ultimoCorreoCapturado', (error, rep)=> { 
+    console.log('este es el rep')
+    console.log(rep)       
+    if(error){                                                 
+        console.log('nope', error)                      
+        return;                
+    }
+    if(rep){
+      for (const correo of correosIniciales){
+        if(correo !== rep){
+          correosNuevos.push(correo)
+        }
+        else{
+          break
+        }
+      }
+      if(correosNuevos.length !== 0){
+        CapturarNoticias(gmail, correosNuevos,resolve)
       }
       else{
-        break
+        console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
+  
+        console.log('no hay correos nuevos, esperar...')
+        console.log('no hay correos nuevos, esperar...')
+        console.log('no hay correos nuevos, esperar...')
+        console.log('no hay correos nuevos, esperar...')
+        console.log('no hay correos nuevos, esperar...')
+        console.log('no hay correos nuevos, esperar...')
+        console.log('no hay correos nuevos, esperar...')
+        console.log('no hay correos nuevos, esperar...')
+        console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
+  
+        resolve()
       }
     }
-    if(correosNuevos.length !== 0){
-      CapturarNoticias(gmail, correosNuevos,resolve)
-    }
     else{
-      console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
-
-      console.log('no hay correos nuevos, esperar...')
-      console.log('no hay correos nuevos, esperar...')
-      console.log('no hay correos nuevos, esperar...')
-      console.log('no hay correos nuevos, esperar...')
-      console.log('no hay correos nuevos, esperar...')
-      console.log('no hay correos nuevos, esperar...')
-      console.log('no hay correos nuevos, esperar...')
-      console.log('no hay correos nuevos, esperar...')
-      console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
-
-      resolve()
-
+      //Si no se encuentra entonces almacenar en la cache usando su identificador
+      client.set('ultimoCorreoCapturado', correosIniciales[0],(error, result)=> { 
+        if(error){                                                
+          console.log('nope', error)                           
+        }
+        else{
+          console.log('after client.set result is', result);
+          console.log('He guardado en el cache lo siguiente ', 'ultimoCorreoCapturado', correosIniciales[0] );
+          CapturarNoticias(gmail, correosIniciales,resolve)
+        }
+      })
     }
-    
-  }
-  //llamar funcion campurar noticas pasandole la variable CorreosNuevos
-  
+  })
 }
 
 async function ConseguirCorreos(auth, resolve){
