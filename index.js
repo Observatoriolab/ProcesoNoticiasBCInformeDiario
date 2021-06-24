@@ -1,3 +1,5 @@
+// RECORDAR QUE EXISTE EL R10 BOOT, ENTONCES HAY QUE ESCALAR EL DYNOS 
+// EJECUTAR EN CONSOLA : heroku ps:scale worker=1 -a informe-noticias-bc
 const fs = require('fs');
 const readline = require('readline');
 const {google} = require('googleapis');
