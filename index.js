@@ -247,7 +247,7 @@ async function guardarInfoCorreos(gmail,resolve){
         else{
           break
         }
-        
+
       }
       if(correosNuevos.length !== 0){
         client.set('ultimoCorreoCapturado', correosNuevos[correosNuevos.length -1],(error, result)=> { 
@@ -265,7 +265,8 @@ async function guardarInfoCorreos(gmail,resolve){
       }
       else{
         console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
-  
+        console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
+
         console.log('no hay correos nuevos, esperar...')
         console.log('no hay correos nuevos, esperar...')
         console.log('no hay correos nuevos, esperar...')
