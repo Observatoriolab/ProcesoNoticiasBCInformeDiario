@@ -57,6 +57,7 @@ async function conseguirCorreosPromesa(auth){
 async function getMailLoop(auth) {
   const keepGoing = true;
   while (keepGoing) {
+    await delay(20000)
     await conseguirCorreosPromesa(auth)
     console.log('-----------------------------------------------------------------------------------------')
     console.log('-----------------------------------------------------------------------------------------')
