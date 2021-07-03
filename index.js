@@ -134,7 +134,7 @@ async function gmailListCall(gmail, result,callback,resolve){
   console.log("Linea 88: ", result.nextPageToken)
   if(result.nextPageToken === undefined){
     console.log('Los ids de los correos son: ', correosIniciales)
-    callback(gmail, resolve)
+    callback(gmail,correosIniciales[correosIniciales.length-1], resolve)
     return
   }
   else{
@@ -247,9 +247,21 @@ async function guardarInfoCorreos(gmail,resolve){
         else{
           break
         }
+        
       }
       if(correosNuevos.length !== 0){
-        CapturarNoticias(gmail, correosNuevos,resolve)
+        client.set('ultimoCorreoCapturado', correosNuevos[correosNuevos.length -1],(error, result)=> { 
+          if(error){                                                
+            console.log('nope', error)                           
+          }
+          else{
+            console.log('after client.set result is', result);
+            console.log('He guardado en el cache lo siguiente ', 'ultimoCorreoCapturado', correosNuevos[correosNuevos.length - 1] );
+            CapturarNoticias(gmail, correosNuevos,resolve)
+           
+          }
+        })
+        
       }
       else{
         console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
@@ -268,17 +280,22 @@ async function guardarInfoCorreos(gmail,resolve){
       }
     }
     else{
+      guardarIdsCorreos(gmail,guardarCacheUltimoId, resolve)
       //Si no se encuentra entonces almacenar en la cache usando su identificador
-      client.set('ultimoCorreoCapturado', correosIniciales[0],(error, result)=> { 
-        if(error){                                                
-          console.log('nope', error)                           
-        }
-        else{
-          console.log('after client.set result is', result);
-          console.log('He guardado en el cache lo siguiente ', 'ultimoCorreoCapturado', correosIniciales[0] );
-          CapturarNoticias(gmail, correosIniciales,resolve)
-        }
-      })
+      
+    }
+  })
+}
+async function guardarCacheUltimoId(gmail, ultimoId,resolve){
+  client.set('ultimoCorreoCapturado', ultimoId,(error, result)=> { 
+    if(error){                                                
+      console.log('nope', error)                           
+    }
+    else{
+      console.log('after client.set result is', result);
+      console.log('He guardado en el cache lo siguiente ', 'ultimoCorreoCapturado', ultimoId );
+      CapturarNoticias(gmail, correosIniciales,resolve)
+      
     }
   })
 }
@@ -287,7 +304,7 @@ async function ConseguirCorreos(auth, resolve){
   
   console.log('el auth',auth)
   const gmail = google.gmail({version: 'v1', auth});
-  guardarIdsCorreos(gmail, guardarInfoCorreos, resolve)
+  guardarInfoCorreos(gmail, resolve)
   
 
 
@@ -321,6 +338,8 @@ async function ObtenerMedaDataNoticia(resolve){
       await delay(1000)
   }
   hrefs = []
+  correosNuevos = []
+  correosIniciales = []
   resolve()
 
 }
