@@ -136,7 +136,7 @@ async function gmailListCall(gmail, result,callback,resolve){
   console.log("Linea 88: ", result.nextPageToken)
   if(result.nextPageToken === undefined){
     console.log('Los ids de los correos son: ', correosIniciales)
-    callback(gmail,correosIniciales[0], resolve)
+    callback(gmail, resolve)
     return
   }
   else{
@@ -278,8 +278,8 @@ async function guardarInfoCorreos(gmail,resolve){
         console.log('no hay correos nuevos, esperar...')
         console.log('no hay correos nuevos, esperar...')
         console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
-  
         resolve()
+   
       }
     }
     else{
