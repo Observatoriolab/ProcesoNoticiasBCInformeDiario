@@ -243,7 +243,7 @@ async function guardarInfoCorreos(gmail,resolve){
     }
     if(rep !== undefined && rep !== null){      
       for (const correo of correosSacadosAPI){
-        for (const correoCache of correosIdsCache.value) {
+        for (const correoCache of rep.value) {
           if(correo !== correoCache){
             correosNuevos.push(correo)
           }
