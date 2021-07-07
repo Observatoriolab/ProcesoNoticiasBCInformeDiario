@@ -308,7 +308,7 @@ async function guardarArregloCorreosIdsCache(gmail,resolve){
     }
     else{
       console.log('after client.set result is', result);
-      console.log('He guardado en el cache lo siguiente ', 'correosIdsCache', correosIdsCache );
+      console.log('He guardado en el cache lo siguiente (largo de la lista)', result );
       CapturarNoticias(gmail, correosSacadosAPI,resolve)
       
     }
