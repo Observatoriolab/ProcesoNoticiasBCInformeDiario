@@ -241,9 +241,9 @@ async function guardarInfoCorreos(gmail,resolve){
         console.log('nope', error)                      
         return;                
     }
-    if(rep !== undefined && rep !== null){
+    if(rep !== undefined && rep !== null){      
       for (const correo of correosSacadosAPI){
-        for (const correoCache of correosIdsCache) {
+        for (const correoCache of correosIdsCache.value) {
           if(correo !== correoCache){
             correosNuevos.push(correo)
           }
@@ -253,14 +253,24 @@ async function guardarInfoCorreos(gmail,resolve){
         }
       }
       if(correosNuevos.length !== 0){
-        client.set('correosIdsCache', correosSacadosAPI,(error, result)=> { 
+        client.ltrim('correosIdsCache', 1,0,(error, result)=> { 
           if(error){                                                
             console.log('nope', error)                           
           }
           else{
-            console.log('after client.set result is', result);
-            console.log('He guardado en el cache lo siguiente ', 'correosIdsCache', correosSacadosAPI );
-            CapturarNoticias(gmail, correosNuevos,resolve)
+            console.log('correosIdCache deberia ser nulo')
+            client.lpush('correosIdsCache', correosSacadosAPI,(error, result)=> { 
+              if(error){                                                
+                console.log('nope', error)                           
+              }
+              else{
+                console.log('after client.set result is', result);
+                console.log('He guardado en el cache lo siguiente ', 'correosIdsCache', correosSacadosAPI );
+                CapturarNoticias(gmail, correosNuevos,resolve)
+               
+              }
+            })
+         
            
           }
         })
@@ -291,7 +301,7 @@ async function guardarInfoCorreos(gmail,resolve){
   })
 }
 async function guardarArregloCorreosIdsCache(gmail,resolve){
-  client.set('correosIdsCache',correosSacadosAPI,(error, result)=> { 
+  client.lpush('correosIdsCache',correosSacadosAPI,(error, result)=> { 
     if(error){                     
       console.log('Error en la linea 296')                           
       console.log('nope', error)                           
