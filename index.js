@@ -292,7 +292,8 @@ async function guardarInfoCorreos(gmail,resolve){
 }
 async function guardarArregloCorreosIdsCache(gmail,resolve){
   client.set('correosIdsCache',correosSacadosAPI,(error, result)=> { 
-    if(error){                                                
+    if(error){                     
+      console.log('Error en la linea 296')                           
       console.log('nope', error)                           
     }
     else{
