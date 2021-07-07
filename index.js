@@ -9,8 +9,8 @@ const cheerio = require('cheerio');
 const axios = require('axios');
 
 
-var correosIniciales = []
-var ultimoCorreoCapturado = ""
+var correosSacadosAPI = []
+var correosIdsCache = ""
 var correosNuevos = []
 var hrefs = []
 const API_ENDPOINT_TO_POST = "https://satelite-noticias-api.herokuapp.com/create_news"
@@ -135,7 +135,7 @@ function getNewToken(oAuth2Client,callback) {
 async function gmailListCall(gmail, result,callback,resolve){
   console.log("Linea 88: ", result.nextPageToken)
   if(result.nextPageToken === undefined){
-    console.log('Los ids de los correos son: ', correosIniciales)
+    console.log('Los ids de los correos son: ', correosSacadosAPI)
     callback(gmail, resolve)
     return
   }
@@ -151,7 +151,7 @@ async function gmailListCall(gmail, result,callback,resolve){
       console.log("Linea 102: ",res.data.nextPageToken)
   
       for (const idCorreo of res.data.messages) {
-          correosIniciales.push(idCorreo.id)
+          correosSacadosAPI.push(idCorreo.id)
       }
       
       return gmailListCall(gmail, res.data,callback, resolve) 
@@ -232,9 +232,9 @@ async function guardarInfoCorreos(gmail,resolve){
   // Si es que UltimoCorreoCapturado es un string vacio -> UltimoCorreoCapturado es igual a ultimo id de CorreosIniciales
   // llamar funcion capturar noticias pasandole la variable CorreosIniciales
   console.log('sali de la recursion')
-  console.log('ultimoCorreoCapturado', ultimoCorreoCapturado)
+  console.log('correosIdsCache', correosIdsCache)
   // HASTA ACA ESTA BUENO
-  client.get('ultimoCorreoCapturado', (error, rep)=> { 
+  client.get('correosIdsCache', (error, rep)=> { 
     console.log('este es el rep')
     console.log(rep)       
     if(error){                                                 
@@ -242,23 +242,24 @@ async function guardarInfoCorreos(gmail,resolve){
         return;                
     }
     if(rep !== undefined && rep !== null){
-      for (const correo of correosIniciales){
-        if(correo !== rep){
-          correosNuevos.push(correo)
+      for (const correo of correosSacadosAPI){
+        for (const correoCache of correosIdsCache) {
+          if(correo !== correoCache){
+            correosNuevos.push(correo)
+          }
+          else{
+            break
+          }         
         }
-        else{
-          break
-        }
-
       }
       if(correosNuevos.length !== 0){
-        client.set('ultimoCorreoCapturado', correosNuevos[0],(error, result)=> { 
+        client.set('correosIdsCache', correosSacadosAPI,(error, result)=> { 
           if(error){                                                
             console.log('nope', error)                           
           }
           else{
             console.log('after client.set result is', result);
-            console.log('He guardado en el cache lo siguiente ', 'ultimoCorreoCapturado', correosNuevos[0] );
+            console.log('He guardado en el cache lo siguiente ', 'correosIdsCache', correosSacadosAPI );
             CapturarNoticias(gmail, correosNuevos,resolve)
            
           }
@@ -283,21 +284,21 @@ async function guardarInfoCorreos(gmail,resolve){
       }
     }
     else{
-      guardarCacheUltimoId(gmail,correosIniciales[0], resolve)
+      guardarArregloCorreosIdsCache(gmail, resolve)
       //Si no se encuentra entonces almacenar en la cache usando su identificador
       
     }
   })
 }
-async function guardarCacheUltimoId(gmail, ultimoId,resolve){
-  client.set('ultimoCorreoCapturado', ultimoId,(error, result)=> { 
+async function guardarArregloCorreosIdsCache(gmail,resolve){
+  client.set('correosIdsCache',correosSacadosAPI,(error, result)=> { 
     if(error){                                                
       console.log('nope', error)                           
     }
     else{
       console.log('after client.set result is', result);
-      console.log('He guardado en el cache lo siguiente ', 'ultimoCorreoCapturado', ultimoId );
-      CapturarNoticias(gmail, correosIniciales,resolve)
+      console.log('He guardado en el cache lo siguiente ', 'correosIdsCache', correosIdsCache );
+      CapturarNoticias(gmail, correosSacadosAPI,resolve)
       
     }
   })
@@ -314,18 +315,18 @@ async function ConseguirCorreos(auth, resolve){
 
 }
 
-async function obtenerUnaNoticiaLoop(gmail,correosIniciales,resolve){
+async function obtenerUnaNoticiaLoop(gmail,correosSacadosAPI,resolve){
 
-  await ObtenerUnaNoticia(gmail, correosIniciales, ObtenerMedaDataNoticia,resolve)
+  await ObtenerUnaNoticia(gmail, correosSacadosAPI, ObtenerMedaDataNoticia,resolve)
   
  
  
 }
 
-async function CapturarNoticias(gmail, correosIniciales,resolve){
+async function CapturarNoticias(gmail, correosSacadosAPI,resolve){
   //noticasAguardar es un arreglo que contine los ids de las noticias a guardar en la base de datos
-  console.log('Linea 169: ',correosIniciales)
-  obtenerUnaNoticiaLoop(gmail,correosIniciales,resolve)
+  console.log('Linea 169: ',correosSacadosAPI)
+  obtenerUnaNoticiaLoop(gmail,correosSacadosAPI,resolve)
   
   // recorrer noticasAguardar y ocupar la funcion 
 
@@ -342,7 +343,7 @@ async function ObtenerMedaDataNoticia(resolve){
   }
   hrefs = []
   correosNuevos = []
-  correosIniciales = []
+  correosSacadosAPI = []
   resolve()
 
 }
