@@ -235,7 +235,7 @@ async function guardarInfoCorreos(gmail,resolve){
   console.log('correosIdsCache', correosIdsCache)
   // HASTA ACA ESTA BUENO
   var cacheLength = 0
-  client.llen(['correosIdsCache',0], (error, reply)=> { 
+  client.llen('correosIdsCache', (error, reply)=> { 
     if(error){
       console.log('Tuve este error sacando el largo del arreglo: ', error)
       return;
@@ -253,7 +253,7 @@ async function guardarInfoCorreos(gmail,resolve){
     }
     if(rep !== undefined && rep !== null){      
       for (const correo of correosSacadosAPI){
-        for (const correoCache of rep.value) {
+        for (const correoCache of rep) {
           if(correo !== correoCache){
             correosNuevos.push(correo)
           }
