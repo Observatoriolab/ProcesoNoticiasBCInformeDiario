@@ -287,19 +287,24 @@ async function guardarInfoCorreos(gmail,resolve){
         
       }
       else{
-        console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
-        console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
-
-        console.log('no hay correos nuevos, esperar...')
-        console.log('no hay correos nuevos, esperar...')
-        console.log('no hay correos nuevos, esperar...')
-        console.log('no hay correos nuevos, esperar...')
-        console.log('no hay correos nuevos, esperar...')
-        console.log('no hay correos nuevos, esperar...')
-        console.log('no hay correos nuevos, esperar...')
-        console.log('no hay correos nuevos, esperar...')
-        console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
-        resolve()
+        if(rep.length === 0){
+          guardarArregloCorreosIdsCache(gmail, resolve)
+        }
+        else{
+          console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
+          console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
+  
+          console.log('no hay correos nuevos, esperar...')
+          console.log('no hay correos nuevos, esperar...')
+          console.log('no hay correos nuevos, esperar...')
+          console.log('no hay correos nuevos, esperar...')
+          console.log('no hay correos nuevos, esperar...')
+          console.log('no hay correos nuevos, esperar...')
+          console.log('no hay correos nuevos, esperar...')
+          console.log('no hay correos nuevos, esperar...')
+          console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
+          resolve()
+        }
    
       }
     }
