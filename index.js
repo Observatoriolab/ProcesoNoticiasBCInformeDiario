@@ -251,7 +251,9 @@ async function guardarInfoCorreos(gmail,resolve){
         console.log('nope', error)                      
         return;                
     }
-    if(rep !== undefined && rep !== null){      
+    if(rep !== undefined && rep !== null && rep.length !== 0){      
+      rep = rep.slice(0,4)
+      console.log('Este es el rep desde que se corto',rep)
       for (const correo of correosSacadosAPI){
         for (const correoCache of rep) {
           if(correo !== correoCache){
@@ -268,8 +270,11 @@ async function guardarInfoCorreos(gmail,resolve){
             console.log('nope', error)                           
           }
           else{
+            console.log(result)
             console.log('correosIdCache deberia ser nulo')
             client.lpush('correosIdsCache', correosSacadosAPI,(error, result)=> { 
+              console.log('este es es el cache luego de guardarlo',result)
+
               if(error){                                                
                 console.log('nope', error)                           
               }
@@ -316,6 +321,10 @@ async function guardarInfoCorreos(gmail,resolve){
   })
 }
 async function guardarArregloCorreosIdsCache(gmail,resolve){
+  console.log('Paso por aqui 320: ')
+  console.log(correosSacadosAPI)
+  correosSacadosAPI = correosSacadosAPI.splice(0,4)
+  console.log('Estos son los ids que se van a guardar: ', correosSacadosAPI)
   client.lpush('correosIdsCache',correosSacadosAPI,(error, result)=> { 
     if(error){                     
       console.log('Error en la linea 296')                           
