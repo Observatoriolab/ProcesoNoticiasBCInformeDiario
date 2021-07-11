@@ -243,9 +243,7 @@ async function guardarInfoCorreos(gmail,resolve){
         return;                
     }
     if(rep !== undefined && rep !== null && rep.length !== 0){      
-      correosSacadosAPI = correosSacadosAPI.splice(0,3)
       console.log('Estos son los correosSacados de la api pero cortados', correosSacadosAPI)
-      delay(20000)
 
       correosNuevos = correosSacadosAPI.filter(correo => !rep.includes(correo))
 
@@ -279,10 +277,6 @@ async function guardarInfoCorreos(gmail,resolve){
         
       }
       else{
-        if(rep.length === 0){
-          guardarArregloCorreosIdsCache(gmail, resolve)
-        }
-        else{
           console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
           console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
   
@@ -296,7 +290,7 @@ async function guardarInfoCorreos(gmail,resolve){
           console.log('no hay correos nuevos, esperar...')
           console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
           resolve()
-        }
+        
    
       }
     }
@@ -309,8 +303,7 @@ async function guardarInfoCorreos(gmail,resolve){
 }
 async function guardarArregloCorreosIdsCache(gmail,resolve){
   console.log('Paso por aqui 320: ')
-  console.log(correosSacadosAPI)
-  correosSacadosAPI = correosSacadosAPI.splice(1,3)
+
   console.log('Estos son los ids que se van a guardar: ', correosSacadosAPI)
   client.lpush('correosIdsCache',correosSacadosAPI,(error, result)=> { 
     if(error){                     
