@@ -244,7 +244,7 @@ async function guardarInfoCorreos(gmail,resolve){
   })
   console.log('Este es el largo del arreglo que esta en el cache: ', cacheLength)
   console.log('es del tipo: ',typeof(cacheLength) )
-  await client.lrange(['correosIdsCache',0,cacheLength],(error, rep)=> { 
+  client.lrange(['correosIdsCache',0,cacheLength],(error, rep)=> { 
     console.log('este es el rep')
     console.log(rep)       
     if(error){                                                 
@@ -254,7 +254,7 @@ async function guardarInfoCorreos(gmail,resolve){
     if(rep !== undefined && rep !== null && rep.length !== 0){      
       correosSacadosAPI = correosSacadosAPI.splice(0,3)
       console.log('Estos son los correosSacados de la api pero cortados', correosSacadosAPI)
-      await delay(20000)
+      delay(20000)
 
       for (const correo of correosSacadosAPI){
         for (const correoCache of rep) {
