@@ -252,7 +252,7 @@ async function guardarInfoCorreos(gmail,resolve){
         return;                
     }
     if(rep !== undefined && rep !== null && rep.length !== 0){      
-      rep = rep.slice(0,4)
+      rep = rep.slice(0,2)
       console.log('Este es el rep desde que se corto',rep)
       for (const correo of correosSacadosAPI){
         for (const correoCache of rep) {
@@ -323,7 +323,7 @@ async function guardarInfoCorreos(gmail,resolve){
 async function guardarArregloCorreosIdsCache(gmail,resolve){
   console.log('Paso por aqui 320: ')
   console.log(correosSacadosAPI)
-  correosSacadosAPI = correosSacadosAPI.splice(0,4)
+  correosSacadosAPI = correosSacadosAPI.splice(0,2)
   console.log('Estos son los ids que se van a guardar: ', correosSacadosAPI)
   client.lpush('correosIdsCache',correosSacadosAPI,(error, result)=> { 
     if(error){                     
