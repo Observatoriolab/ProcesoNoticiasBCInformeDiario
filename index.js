@@ -234,7 +234,7 @@ async function guardarInfoCorreos(gmail,resolve){
   console.log('sali de la recursion')
   console.log('correosIdsCache', correosIdsCache)
   // HASTA ACA ESTA BUENO
-  var cacheLength = 0
+  let cacheLength = 0
   client.llen('correosIdsCache', (error, reply)=> { 
     if(error){
       console.log('Tuve este error sacando el largo del arreglo: ', error)
