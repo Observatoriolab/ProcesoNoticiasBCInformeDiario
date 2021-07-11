@@ -256,16 +256,8 @@ async function guardarInfoCorreos(gmail,resolve){
       console.log('Estos son los correosSacados de la api pero cortados', correosSacadosAPI)
       delay(20000)
 
-      for (const correo of correosSacadosAPI){
-        for (const correoCache of rep) {
-          if(correo !== correoCache){
-            correosNuevos.push(correo)
-          }
-          else{
-            break
-          }         
-        }
-      }
+      correosNuevos = correosSacadosAPI.filter(correo => !rep.includes(correo))
+
       if(correosNuevos.length !== 0){
         console.log('Estos son los correos nuevos')
         console.log(correosNuevos)
