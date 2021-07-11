@@ -289,6 +289,7 @@ async function guardarInfoCorreos(gmail,resolve){
           console.log('no hay correos nuevos, esperar...')
           console.log('no hay correos nuevos, esperar...')
           console.log('\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n ')
+          correosSacadosAPI = []
           resolve()
         
    
