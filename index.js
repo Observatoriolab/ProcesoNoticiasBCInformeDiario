@@ -244,7 +244,7 @@ async function guardarInfoCorreos(gmail,resolve){
   })
   console.log('Este es el largo del arreglo que esta en el cache: ', cacheLength)
   console.log('es del tipo: ',typeof(cacheLength) )
-  client.lrange(['correosIdsCache',0,cacheLength],(error, rep)=> { 
+  await client.lrange(['correosIdsCache',0,cacheLength],(error, rep)=> { 
     console.log('este es el rep')
     console.log(rep)       
     if(error){                                                 
