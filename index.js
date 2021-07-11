@@ -236,6 +236,7 @@ async function guardarInfoCorreos(gmail,resolve){
   // HASTA ACA ESTA BUENO
   let cacheLength = 0
   client.llen('correosIdsCache', (error, reply)=> { 
+    console.log('Este es el largo de lo que esta en el cache: ', reply)
     if(error){
       console.log('Tuve este error sacando el largo del arreglo: ', error)
       return;
